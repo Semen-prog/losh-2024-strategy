@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
     }
 
     int l = a / 2 - n;
-    int r = a / 2 + n + 1;
+    int r = a / 2 + n;
     for (int i = 0; i < k; i++) {
         auto [x, y] = gencoords(rnd, l, r);
         while (vals[x][y] > 0) {
