@@ -341,19 +341,19 @@ void set_mem_limit(unsigned long mbytes) {
 
     if (getrlimit(RLIMIT_AS, &rlim_as) != 0) {
         fprintf(stderr, "Could not get AS rlimit\n");
-        fail();
+        exit(1);
     }
     if (getrlimit(RLIMIT_DATA, &rlim_data) != 0) {
         fprintf(stderr, "Could not get DATA limit\n");
-        fail();
+        exit(1);
     }
     if (getrlimit(RLIMIT_RSS, &rlim_rss) != 0) {
         fprintf(stderr, "Could not get RSS limit\n");
-        fail();
+        exit(1);
     }
     if (getrlimit(RLIMIT_STACK, &rlim_stack) != 0) {
         fprintf(stderr, "Could not get stack limit\n");
-        fail();
+        exit(1);
     }
 
     rlim_as.rlim_cur = mbytes * 1048576;
@@ -363,19 +363,19 @@ void set_mem_limit(unsigned long mbytes) {
 
     if (setrlimit(RLIMIT_AS, &rlim_as) != 0) {
         fprintf(stderr, "Could not set AS rlimit\n");
-        fail();
+        exit(1);
     }
     if (setrlimit(RLIMIT_DATA, &rlim_data) != 0) {
         fprintf(stderr, "Could not set DATA limit\n");
-        fail();
+        exit(1);
     }
     if (setrlimit(RLIMIT_RSS, &rlim_rss) != 0) {
         fprintf(stderr, "Could not set RSS limit\n");
-        fail();
+        exit(1);
     }
     if (setrlimit(RLIMIT_STACK, &rlim_stack) != 0) {
         fprintf(stderr, "Could not set stack limit\n");
-        fail();
+        exit(1);
     }
 }
 
