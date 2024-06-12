@@ -1,6 +1,6 @@
 CC = gcc
 CXX = g++
-CFLAGS = -O2 -march=native
+CFLAGS = -O2 -march=native -Wno-unused-result
 CXXFLAGS = -std=gnu++20
 
 CXX_VERSION := $(shell $(CXX) -dumpversion)
