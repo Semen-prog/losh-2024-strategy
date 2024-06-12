@@ -23,7 +23,7 @@
 #endif
 #endif
 
-const int STEP_USEC = 300 * 1000;
+const int STEP_USEC = 30 * 1000;
 
 typedef struct pair {
     int x;
@@ -615,8 +615,8 @@ void set_timer(int cur_num) {
     timer_val.it_interval.tv_sec = 0;
     timer_val.it_interval.tv_usec = 0;
 
-    timer_val.it_value.tv_sec = 0;
-    timer_val.it_value.tv_usec = STEP_USEC;
+    timer_val.it_value.tv_sec = STEP_USEC / 1000000;
+    timer_val.it_value.tv_usec = STEP_USEC % 1000000;
 
     if (setitimer(ITIMER_REAL, &timer_val, NULL) != 0) {
         fprintf(stderr, "setitimer returned non-zero, errno is %d\n", errno);
