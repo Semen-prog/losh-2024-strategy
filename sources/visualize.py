@@ -13,7 +13,7 @@ def generate_color_list(players_cnt):
     return [generate_random_color() for _ in range(players_cnt)]
 
 if "--help" in argv:
-    print("Usage:\n " + argv[0] + " log.txt ms font wait\n log.txt - text file with game log,\n ms - time in milliseconds between two steps in visualization,\n font - score font,\n wait - time before visualization")
+    print("Usage:\n " + argv[0] + " log.txt ms font wait\n log.txt - text file with game log,\n ms - time in milliseconds between two steps in visualization,\n font - score font size,\n wait - time in milliseconds before visualization")
     exit(0)
 if len(argv) == 5:
     path = argv[1]

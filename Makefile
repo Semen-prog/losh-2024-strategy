@@ -10,7 +10,7 @@ endif
 
 BUILDDIR=$(CURDIR)/binaries
 
-all: $(BUILDDIR)/interactor $(BUILDDIR)/validate $(BUILDDIR)/fieldgen
+all: $(BUILDDIR)/interactor $(BUILDDIR)/validate $(BUILDDIR)/fieldgen $(BUILDDIR)/visualize
 
 $(BUILDDIR)/interactor: sources/interactor.c | $(BUILDDIR)
 	${CC} $< -o $@ ${CFLAGS}
@@ -20,6 +20,10 @@ $(BUILDDIR)/validate: sources/e_validate.cpp | $(BUILDDIR)
 
 $(BUILDDIR)/fieldgen: sources/fieldgen.cpp | $(BUILDDIR)
 	${CXX} $< -o $@ ${CFLAGS} ${CXXFLAGS}
+
+$(BUILDDIR)/visualize: sources/visualize.py | $(BUILDDIR)
+	cp $< $@
+	chmod u+x $@
 
 $(BUILDDIR):
 	mkdir $(BUILDDIR)
