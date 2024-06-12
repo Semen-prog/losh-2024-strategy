@@ -15,7 +15,7 @@ all: $(BUILDDIR)/interactor $(BUILDDIR)/validate $(BUILDDIR)/fieldgen
 $(BUILDDIR)/interactor: sources/interactor.c | $(BUILDDIR)
 	${CC} $< -o $@ ${CFLAGS}
 
-$(BUILDDIR)/validate: sources/s_validate.cpp | $(BUILDDIR)
+$(BUILDDIR)/validate: sources/e_validate.cpp | $(BUILDDIR)
 	${CXX} $< -o $@ ${CFLAGS} ${CXXFLAGS}
 
 $(BUILDDIR)/fieldgen: sources/fieldgen.cpp | $(BUILDDIR)
