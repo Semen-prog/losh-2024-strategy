@@ -15,15 +15,29 @@ Microsoft Store -> Ubuntu 24.04 LTS - Install
 ### Выполнить команду:
 
 ```bash
-sudo apt install gcc g++ make python3 python3-tk git && git clone "https://github.com/Semen-prog/losh-2024-strategy" && cd losh-2024-strategy && make && cd binaries && ./interactor --help
+sudo apt install gcc g++ make python3 python3-tk git && git clone "https://github.com/Semen-prog/losh-2024-strategy" && cd losh-2024-strategy && make && mv import_strategy.sh binaries && chmod u+x ./binaries/import_strategy.sh && cd binaries && clear && echo "Please execute ./import_strategy"
 ```
 
-### Либо выполнить установку вручную:
+Скрипт *import_strategy.sh* создаёт ссылку на файл, путь до которого вы укажете. Копирование не производится, вы можете менять исходный файл без повторного вызова команды.
 
-Установить GNU Make, gcc, g++ (`sudo apt install make gcc g++`)
+## Использование
 
-Находясь в этой папке, выполнить команду `make`.
+В папке *binaries* лежат скомпилированные файлы интерактора, валидатора и генератора исходных полей. Использование программ:
+```bash
+./interactor field.txt log.txt validate strategy1 strategy2 [strategy3 ...]
+```
 
-Перейти в папку binaries (`cd binaries`)
+- *field.txt* - путь до файла с исходным полем;
+- *log.txt* путь до файла, в который производится запись лога игры (для последующей визуализации);
+- *validate* - путь до скомпилированного фалйа валидатора
+- *strategy1, strategy2, ...* - пути до скомпилированных файлов стратегий участников.
 
-Запустить `./interactor --help`, запустить игру в соответствии с форматом, описанным в help.
+```bash
+./fieldgen t n p k [seed [prob]]
+```
+
+*t, n, p, k* - параметры из условия.
+*seed* - значение *seed* генератора случайных чисел. Если не передать seed, используется значение seed по умолчанию.
+*prob* - вероятность в процентах генерации стены. *prob* можно указывать только при указанном *seed*. *prob* может принимать целые значения от 0 до 50 (ероятность в процентах). Если *prob* не указан, используется значение по умолчанию - 15%.
+
+`validate` - программа валидатора, предусмотрена только для использования вместе с интерактором.
