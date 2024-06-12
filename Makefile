@@ -4,7 +4,7 @@ CFLAGS=-Wall -Wextra -Wshadow -O2 -march=native
 CXXFLAGS=-std=gnu++20
 
 CXX_VERSION := $(shell $(CXX) -dumpversion)
-ifeq ($(shell expr $(CXX_VERSION) '<' 13.0.0), 1)
+ifeq ($(shell expr $(CXX_VERSION) '<' 13), 1)
 $(error You have to install at least g++ version 13 to build this project)
 endif
 
