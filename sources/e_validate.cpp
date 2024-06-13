@@ -221,7 +221,8 @@ namespace Validator {
                             auto [ci, cj] = getij(curel.first, curel.second);
                             if (field[ci][cj] != -1) {
                                 field[ci][cj] = pl_num;
-                                log_stream << pl_num << ' ' << dfs_used.back().first << ' ' << dfs_used.back().second << std::endl;
+                                auto [x, y] = getcoords(ci, cj);
+                                log_stream << pl_num << ' ' << x << ' ' << y << std::endl;
                             }
                         }
                         dfs_used.resize(0);
