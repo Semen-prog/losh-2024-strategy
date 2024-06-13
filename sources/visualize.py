@@ -1,27 +1,32 @@
 #!/usr/bin/python3
 
-from tkinter import Tk, Canvas, Toplevel
+from tkinter import Tk, Canvas, Toplevel, Scale, Label, Entry, HORIZONTAL
 from random import randint
 from sys import argv
 
 def generate_random_color():
-    return "#%02x%02x%02x" % tuple(randint(0, 180) for _ in range(3))
+    return "#%02x%02x%02x" % tuple(randint(0, 255) for _ in range(3))
 
 def generate_color_list(players_cnt):
     if players_cnt == 2:
         return ["red", "blue"]
     return [generate_random_color() for _ in range(players_cnt)]
 
+min_ms, max_ms = 1, 200
+
 if "--help" in argv:
-    print("Usage:\n " + argv[0] + " log.txt ms font wait\n log.txt - text file with game log,\n ms - time in milliseconds between two steps in visualization,\n font - score font size,\n wait - time in milliseconds before visualization")
+    print(f"Usage:\n {argv[0]} log.txt ms font wait\n log.txt - text file with game log,\n ms - time in milliseconds between two steps in visualization,\n font - score font,\n wait - time before visualization")
     exit(0)
 if len(argv) == 5:
     path = argv[1]
     ms = int(argv[2])
     scfont = int(argv[3])
     wait = int(argv[4])
+    if ms < min_ms or ms > max_ms:
+        print(f"ms = {ms} violates the range [{min_ms}, {max_ms}]")
+        exit(0)
 else:
-    print("Incorrect option\nUse " + argv[0] + " --help to view usage information")
+    print(f"Incorrect option\nUse {argv[0]} --help to view usage information")
     exit(1)
 
 f = open(path, "r")
@@ -39,7 +44,7 @@ for i in range(2 * a + 1):
 
 wall_color = "black"
 colors = generate_color_list(k)
-scores = [1 for _ in range(k)]
+scores = [0 for _ in range(k)]
 ids = [-1 for _ in range(k)]
 
 master = Tk()
@@ -54,7 +59,7 @@ scores_master.title("Счёт")
 
 SW, SH = W * 0.3, H
 
-scr = Canvas(scores_master, width=W*0.3, height=H)
+scr = Canvas(scores_master, width=SW, height=SH)
 
 mixc, miyc, maxc, mayc = W / 100, H / 100, W - W / 100, H - H / 100
 cx, cy = (mixc + maxc) / 2, (miyc + mayc) / 2
@@ -144,7 +149,16 @@ def process():
     else:
         redraw_score(select_best=True)
         return
+    ms = speed.get()
     cnv.after(ms, process)
+
+lsp = Label(scores_master, text="Speed")
+
+speed = Scale(scores_master, from_=max_ms, to=min_ms, orient=HORIZONTAL)
+speed.set(ms)
+
+lsp.pack()
+speed.pack()
 
 cnv.pack()
 scr.pack()
