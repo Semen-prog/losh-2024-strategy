@@ -34,7 +34,7 @@ namespace Validator {
         int t, n, p, k, a;
         std::vector<std::vector<int>> field;
         std::ofstream log_stream;
-        int used_time = -1;
+        int used_time = 0;
         std::vector<std::vector<int>> used;
         std::vector<std::pair<int, int>> dfs_used;
 
@@ -95,7 +95,7 @@ namespace Validator {
             }
             
             for (int i = 1; i <= k; i++) {
-                if (cnt_player_cells[i] != 1) {
+                if (cnt_player_cells[i] != 0) {
                     return gen_status(FAIL, std::format("Player {} has incorrect number of initial cells ({})\n", i, cnt_player_cells[i]));
                 }
             }

@@ -17,6 +17,11 @@
     usleep(10000); \
 } while(0);
 
+#ifdef __APPLE__
+#define getrlimit(...) 1
+#define setrlimit(...) 1
+#endif
+
 #ifdef DEBUG
 #ifndef KEEPFILE
 #define KEEPFILE

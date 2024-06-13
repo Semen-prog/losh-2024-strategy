@@ -52,15 +52,6 @@ int main(int argc, char *argv[]) {
 
     int l = a / 2 - n;
     int r = a / 2 + n;
-    for (int i = 0; i < k; i++) {
-        auto [x, y] = gencoords(rnd, l, r);
-        while (vals[x][y] > 0) {
-            auto curp = gencoords(rnd, l, r);
-            x = curp.first;
-            y = curp.second;
-        }
-        vals[x][y] = i + 1;
-    }
     
     std::cout << t << ' ' << n << ' ' << p << ' ' << k << ' ' << a << '\n';
     for (int i = 0; i < a; i++) {
