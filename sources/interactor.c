@@ -510,7 +510,16 @@ void run_programs(int argc, char *argv[]) {
         free(validargs);
         fail();
     } else if (validpid == 0) {
-        set_mem_limit(1024);
+        if (s_memlimit) {
+            #ifdef linux
+            set_mem_limit(1024);
+            #else
+            if (!silent_mode) {
+                fprintf(stderr, "s_memlimit enabled, non-linux platforms are not supported\n");
+            }
+            exit(1);
+            #endif
+        }
         if (silent_mode) {
             dup2(null_fd, STDERR_FILENO);
         }
