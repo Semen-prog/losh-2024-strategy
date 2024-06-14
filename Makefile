@@ -12,6 +12,9 @@ BUILDDIR=$(CURDIR)/binaries
 
 all: $(BUILDDIR)/interactor $(BUILDDIR)/validate $(BUILDDIR)/fieldgen $(BUILDDIR)/visualize
 
+debug:
+	${CC} sources/interactor.c -o $(BUILDDIR)/interactor ${CFLAGS} -DDEBUG
+
 $(BUILDDIR)/interactor: sources/interactor.c | $(BUILDDIR)
 	${CC} $< -o $@ ${CFLAGS}
 
@@ -27,3 +30,6 @@ $(BUILDDIR)/visualize: sources/visualize.py | $(BUILDDIR)
 
 $(BUILDDIR):
 	mkdir $(BUILDDIR)
+
+clean:
+	rm -rf $(BUILDDIR)

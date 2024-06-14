@@ -12,6 +12,8 @@
 #include <sys/time.h>
 #include <assert.h>
 
+const int STEP_USEC = 30 * 1000;
+
 #ifdef linux
 #include <linux/seccomp.h>
 #include <linux/filter.h>
@@ -83,12 +85,15 @@ static char program_name[PATH_MAX] = "";
     usleep(10000); \
 } while(0);
 
-const int STEP_USEC = 30 * 1000;
-
 int no_keep_file = 0;
 int only_nums_out = 0;
+#ifdef linux
 int s_memlimit = 1;
 int s_seccomp = 1;
+#else
+int s_memlimit = 0;
+int s_seccomp = 0;
+#endif
 int silent_mode = 0;
 
 int failed = 0;
@@ -545,6 +550,7 @@ void run_programs(int argc, char *argv[]) {
             free(curargs);
             fail();
         } else if (curpid == 0) {
+            #ifndef DEBUG
             if (s_memlimit) {
                 #ifdef linux
                 set_mem_limit(256);
@@ -555,6 +561,7 @@ void run_programs(int argc, char *argv[]) {
                 exit(1);
                 #endif
             }
+            #endif
             if (silent_mode) {
                 dup2(null_fd, STDERR_FILENO);
             }
@@ -564,6 +571,7 @@ void run_programs(int argc, char *argv[]) {
             #ifdef DEBUG
             fprintf(stderr, "Executing command %s\n", argv[3 + i]);
             #endif
+            #ifndef DEBUG
             if (s_seccomp) {
                 #ifdef linux
                 setup_filter();
@@ -577,6 +585,7 @@ void run_programs(int argc, char *argv[]) {
                 exit(1);
                 #endif
             }
+            #endif
             if (execve(argv[3 + i], curargs, environ) == -1) {
                 if (!silent_mode) {
                     fprintf(stderr, "Could not execute %d player's program\n", i);
@@ -878,6 +887,8 @@ void read_envs(void) {
         only_nums_out = 1;
         no_keep_file = 1;
         silent_mode = 1;
+        s_memlimit = 1;
+        s_seccomp = 1;
     }
     if (getenv("SILENT") != NULL && strcmp(getenv("SILENT"), "1") == 0) {
         silent_mode = 1;
