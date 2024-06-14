@@ -613,8 +613,8 @@ int validate_field(void) {
     fprintf(stderr, "Got %d code from validator\n", valid_status);
 #endif
     if (valid_status != 0) {
-        fgets(valid_msg, 1024, fout[0]);
-        fgets(valid_msg, 1024, fout[0]);
+        fgets(valid_msg, 1023, fout[0]);
+        fgets(valid_msg, 1023, fout[0]);
     }
     if (valid_status == 2) {
         if (!silent_mode) {
@@ -689,8 +689,8 @@ int validate_turn(int num, pair turn) {
     fscanf(fout[0], "%d", &valid_res);
     if (valid_res != 0) {
         char *msg = malloc(1024);
-        fgets(msg, 1024, fout[0]);
-        fgets(msg, 1024, fout[0]);
+        fgets(msg, 1023, fout[0]);
+        fgets(msg, 1023, fout[0]);
         if (valid_res == 1 || valid_res == 3) {
             if (!silent_mode) {
                 fprintf(stderr, "Player %d has made incorrect turn. Validator info: %s\n", num, msg);
@@ -782,7 +782,7 @@ void set_timer(int cur_num) {
     }
 }
 
-inline void reset_timer(void) {
+static inline void reset_timer(void) {
     alarm(0);
     cur_running = -1;
 }
