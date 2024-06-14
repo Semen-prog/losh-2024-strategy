@@ -88,8 +88,8 @@ static char program_name[PATH_MAX] = "";
 int no_keep_file = 0;
 int only_nums_out = 0;
 #ifdef linux
-int s_memlimit = 1;
-int s_seccomp = 1;
+int s_memlimit = 0;
+int s_seccomp = 0;
 #else
 int s_memlimit = 0;
 int s_seccomp = 0;
@@ -896,6 +896,10 @@ void read_envs(void) {
     if (getenv("INSECURE") != NULL && strcmp(getenv("INSECURE"), "1") == 0) {
         s_memlimit = 0;
         s_seccomp = 0;
+    }
+    if (getenv("SECURE") != NULL && strcmp(getenv("SECURE"), "1") == 0) {
+        s_memlimit = 1;
+        s_seccomp = 1;
     }
     if (getenv("ONLY_SCORES") != NULL && strcmp(getenv("ONLY_SCORES"), "1") == 0) {
         only_nums_out = 1;
