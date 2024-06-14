@@ -89,6 +89,7 @@ int no_keep_file = 0;
 int only_nums_out = 0;
 int s_memlimit = 0;
 int s_seccomp = 0;
+int silent_mode = 0;
 
 int failed = 0;
 
@@ -183,7 +184,9 @@ static void timer_exp() {
 void handle_child(void) {
     if (pidexit > 0) {
         if (pidexit == progpids[0] && !valid_finished) {
-            fprintf(stderr, "Validator has exited unexpectedly\n");
+            if (!silent_mode) {
+                fprintf(stderr, "Validator has exited unexpectedly\n");
+            }
             fail();
         }
         for (int i = 0; i <= cntp; i++) {
@@ -198,7 +201,9 @@ void handle_child(void) {
             }
         }
         if (cntalive == 0) {
-            fprintf(stderr, "All children have exited, terminating the game\n");
+            if (!silent_mode) {
+                fprintf(stderr, "All children have exited, terminating the game\n");
+            }
             shutdown();
         }
     }
@@ -353,7 +358,9 @@ void read_field(int argc, char *argv[]) {
 #endif
     field_file = fopen(argv[1], "r");
     if (field_file == NULL) {
-        fprintf(stderr, "No field file provided\n");
+        if (!silent_mode) {
+            fprintf(stderr, "No field file provided\n");
+        }
         fail();
     }
 #ifdef DEBUG
@@ -361,7 +368,9 @@ void read_field(int argc, char *argv[]) {
 #endif
     fscanf(field_file, "%d%d%d%d%d", &t, &n, &p, &k, &a);
     if (k != cntp) {
-        fprintf(stderr, "k (%d) is not equal to the number of strategies provided (%d)\n", k, cntp);
+        if (!silent_mode) {
+            fprintf(stderr, "k (%d) is not equal to the number of strategies provided (%d)\n", k, cntp);
+        }
         fail();
     }
     field = calloc(a, sizeof(int*));
@@ -377,7 +386,9 @@ void read_field(int argc, char *argv[]) {
     }
     if (no_keep_file) {
         if (remove(argv[1]) != 0) {
-            fprintf(stderr, "Could not delete the field file\n");
+            if (!silent_mode) {
+                fprintf(stderr, "Could not delete the field file\n");
+            }
             fail();
         }
     }
@@ -426,19 +437,27 @@ void set_mem_limit(unsigned long mbytes) {
     struct rlimit rlim_stack;
 
     if (getrlimit(RLIMIT_AS, &rlim_as) != 0) {
-        fprintf(stderr, "Could not get AS rlimit\n");
+        if (!silent_mode) {
+            fprintf(stderr, "Could not get AS rlimit\n");
+        }
         exit(1);
     }
     if (getrlimit(RLIMIT_DATA, &rlim_data) != 0) {
-        fprintf(stderr, "Could not get DATA limit\n");
+        if (!silent_mode) {
+            fprintf(stderr, "Could not get DATA limit\n");
+        }
         exit(1);
     }
     if (getrlimit(RLIMIT_RSS, &rlim_rss) != 0) {
-        fprintf(stderr, "Could not get RSS limit\n");
+        if (!silent_mode) {
+            fprintf(stderr, "Could not get RSS limit\n");
+        }
         exit(1);
     }
     if (getrlimit(RLIMIT_STACK, &rlim_stack) != 0) {
-        fprintf(stderr, "Could not get stack limit\n");
+        if (!silent_mode) {
+            fprintf(stderr, "Could not get stack limit\n");
+        }
         exit(1);
     }
 
@@ -448,19 +467,27 @@ void set_mem_limit(unsigned long mbytes) {
     rlim_stack.rlim_cur = mbytes * 1048576;
 
     if (setrlimit(RLIMIT_AS, &rlim_as) != 0) {
-        fprintf(stderr, "Could not set AS rlimit\n");
+        if (!silent_mode) {
+            fprintf(stderr, "Could not set AS rlimit\n");
+        }
         exit(1);
     }
     if (setrlimit(RLIMIT_DATA, &rlim_data) != 0) {
-        fprintf(stderr, "Could not set DATA limit\n");
+        if (!silent_mode) {
+            fprintf(stderr, "Could not set DATA limit\n");
+        }
         exit(1);
     }
     if (setrlimit(RLIMIT_RSS, &rlim_rss) != 0) {
-        fprintf(stderr, "Could not set RSS limit\n");
+        if (!silent_mode) {
+            fprintf(stderr, "Could not set RSS limit\n");
+        }
         exit(1);
     }
     if (setrlimit(RLIMIT_STACK, &rlim_stack) != 0) {
-        fprintf(stderr, "Could not set stack limit\n");
+        if (!silent_mode) {
+            fprintf(stderr, "Could not set stack limit\n");
+        }
         exit(1);
     }
 }
@@ -476,7 +503,9 @@ void run_programs(int argc, char *argv[]) {
     cntalive = cntp;
     progpids = calloc(cntp + 1, sizeof(int));
     if (validpid < 0) {
-        fprintf(stderr, "Could not create a process for validator\n");
+        if (!silent_mode) {
+            fprintf(stderr, "Could not create a process for validator\n");
+        }
         free(validargs);
         fail();
     } else if (validpid == 0) {
@@ -497,7 +526,9 @@ void run_programs(int argc, char *argv[]) {
     for (int i = 1; i <= cntp; i++) {
         int curpid = fork();
         if (curpid < 0) {
-            fprintf(stderr, "Could not create a process for %d player\n", i);
+            if (!silent_mode) {
+                fprintf(stderr, "Could not create a process for %d player\n", i);
+            }
             free(curargs);
             fail();
         } else if (curpid == 0) {
@@ -505,7 +536,9 @@ void run_programs(int argc, char *argv[]) {
             set_mem_limit(256);
             #else
             if (s_memlimit) {
-                fprintf(stderr, "s_memlimit enabled, non-linux platforms are not supported\n");
+                if (!silent_mode) {
+                    fprintf(stderr, "s_memlimit enabled, non-linux platforms are not supported\n");
+                }
                 exit(1);
             }
             #endif
@@ -522,12 +555,16 @@ void run_programs(int argc, char *argv[]) {
             install_filter(prog);
             #else
             if (s_seccomp) {
-                fprintf(stderr, "s_seccomp enabled, non-linux platforms are not supported\n");
+                if (!silent_mode) {
+                    fprintf(stderr, "s_seccomp enabled, non-linux platforms are not supported\n");
+                }
                 exit(1);
             }
             #endif
             if (execve(argv[3 + i], curargs, environ) == -1) {
-                fprintf(stderr, "Could not execute %d player's program\n", i);
+                if (!silent_mode) {
+                    fprintf(stderr, "Could not execute %d player's program\n", i);
+                }
                 exit(1);
             }
         } else {
@@ -575,12 +612,16 @@ int validate_field() {
         fgets(valid_msg, 1024, fout[0]);
     }
     if (valid_status == 2) {
-        fprintf(stderr, "Interactor has a bug, exiting. Validator info: %s\n", valid_msg);
+        if (!silent_mode) {
+            fprintf(stderr, "Interactor has a bug, exiting. Validator info: %s\n", valid_msg);
+        }
         interactor_bug = 1;
         free(valid_msg);
         fail();
     } else if (valid_status != 0) {
-        fprintf(stderr, "Unexpected player-specific code on field validation, exiting. Validator code: %d, validator info: %s\n", valid_status, valid_msg);
+        if (!silent_mode) {
+            fprintf(stderr, "Unexpected player-specific code on field validation, exiting. Validator code: %d, validator info: %s\n", valid_status, valid_msg);
+        }
         free(valid_msg);
         fail();
     }
@@ -646,7 +687,9 @@ int validate_turn(int num, pair turn) {
         fgets(msg, 1024, fout[0]);
         fgets(msg, 1024, fout[0]);
         if (valid_res == 1 || valid_res == 3) {
-            fprintf(stderr, "Player %d has made incorrect turn. Validator info: %s\n", num, msg);
+            if (!silent_mode) {
+                fprintf(stderr, "Player %d has made incorrect turn. Validator info: %s\n", num, msg);
+            }
             if (valid_res == 3) {
                 shutdown();
             } else {
@@ -654,7 +697,9 @@ int validate_turn(int num, pair turn) {
             }
             free(msg);
         } else {
-            fprintf(stderr, "Validator code: %d, validator msg: %s. Exiting.\n", valid_res, msg);
+            if (!silent_mode) {
+                fprintf(stderr, "Validator code: %d, validator msg: %s. Exiting.\n", valid_res, msg);
+            }
             interactor_bug = 1;
             free(msg);
             fail();
@@ -672,7 +717,9 @@ void expand_field(void) {
     cur.y = -1;
     int res = validate_turn(-1, cur);
     if (res != 0) {
-        fprintf(stderr, "Validator gave %d on field expansion. Exiting.\n", res);
+        if (!silent_mode) {
+            fprintf(stderr, "Validator gave %d on field expansion. Exiting.\n", res);
+        }
         fail();
     }
     n++;
@@ -723,7 +770,9 @@ void set_timer(int cur_num) {
     timer_val.it_value.tv_usec = STEP_USEC % 1000000;
 
     if (setitimer(ITIMER_REAL, &timer_val, NULL) != 0) {
-        fprintf(stderr, "setitimer returned non-zero, errno is %d\n", errno);
+        if (!silent_mode) {
+            fprintf(stderr, "setitimer returned non-zero, errno is %d\n", errno);
+        }
         fail();
     }
 }
@@ -758,8 +807,10 @@ pair read_from_proc(int num) {
         set_timer(num);
         int cres;
         if ((cres = fscanf(fout[num], "%d%d", &res.x, &res.y)) != 2) {
-            fprintf(stderr, "Read %d integers from %d player\n", cres, num);
-            fprintf(stderr, "Player %d made turn in wrong format or exceeded the time-limit for making turn, killing\n", num);
+            if (!silent_mode) {
+                fprintf(stderr, "Read %d integers from %d player\n", cres, num);
+                fprintf(stderr, "Player %d made turn in wrong format or exceeded the time-limit for making turn, killing\n", num);
+            }
             killchild(num);
             res.x = 1000000000;
             res.y = 1000000000;
@@ -814,6 +865,7 @@ int main(int argc, char *argv[]) {
         no_keep_file = 1;
         s_memlimit = 1;
         s_seccomp = 1;
+        silent_mode = 1;
     }
     struct sigaction child_sa;
     sigemptyset(&child_sa.sa_mask);
@@ -836,7 +888,9 @@ int main(int argc, char *argv[]) {
 
     cntp = argc - 4;
     if (cntp < 2) {
-        fprintf(stderr, "Not enough parameters passed. Please use %s --help to get usage information\n", argv[0]);
+        if (!silent_mode) {
+            fprintf(stderr, "Not enough parameters passed. Please use %s --help to get usage information\n", argv[0]);
+        }
         fail();
     }
 
@@ -874,7 +928,9 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Starting interaction\n");
 #endif
     while (cstep < t) {
-        fprintf(stderr, "Progress: %lf%%\n", cstep * 100.0 / t);
+        if (!silent_mode) {
+            fprintf(stderr, "Progress: %lf%%\n", cstep * 100.0 / t);
+        }
         cstep++;
         turnslen[0] = 0;
         int curexpand = 0;
