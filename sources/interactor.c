@@ -87,8 +87,8 @@ const int STEP_USEC = 30 * 1000;
 
 int no_keep_file = 0;
 int only_nums_out = 0;
-int s_memlimit = 0;
-int s_seccomp = 0;
+int s_memlimit = 1;
+int s_seccomp = 1;
 int silent_mode = 0;
 
 int failed = 0;
@@ -536,16 +536,16 @@ void run_programs(int argc, char *argv[]) {
             free(curargs);
             fail();
         } else if (curpid == 0) {
-            #ifdef linux
-            set_mem_limit(256);
-            #else
             if (s_memlimit) {
+                #ifdef linux
+                set_mem_limit(256);
+                #else
                 if (!silent_mode) {
                     fprintf(stderr, "s_memlimit enabled, non-linux platforms are not supported\n");
                 }
                 exit(1);
+                #endif
             }
-            #endif
             if (silent_mode) {
                 dup2(null_fd, STDERR_FILENO);
             }
@@ -555,19 +555,19 @@ void run_programs(int argc, char *argv[]) {
             #ifdef DEBUG
             fprintf(stderr, "Executing command %s\n", argv[3 + i]);
             #endif
-            #ifdef linux
-            setup_filter();
-            struct sock_filter filter[] = seccomp_fiter(argv[3 + i]);
-            struct sock_fprog prog = seccomp_prog(filter);
-            install_filter(prog);
-            #else
             if (s_seccomp) {
+                #ifdef linux
+                setup_filter();
+                struct sock_filter filter[] = seccomp_fiter(argv[3 + i]);
+                struct sock_fprog prog = seccomp_prog(filter);
+                install_filter(prog);
+                #else
                 if (!silent_mode) {
                     fprintf(stderr, "s_seccomp enabled, non-linux platforms are not supported\n");
                 }
                 exit(1);
+                #endif
             }
-            #endif
             if (execve(argv[3 + i], curargs, environ) == -1) {
                 if (!silent_mode) {
                     fprintf(stderr, "Could not execute %d player's program\n", i);
@@ -868,16 +868,14 @@ void read_envs(void) {
     if (getenv("STRATEGY_SERVER") != NULL && strcmp(getenv("STRATEGY_SERVER"), "1") == 0) {
         only_nums_out = 1;
         no_keep_file = 1;
-        s_memlimit = 1;
-        s_seccomp = 1;
         silent_mode = 1;
     }
     if (getenv("SILENT") != NULL && strcmp(getenv("SILENT"), "1") == 0) {
         silent_mode = 1;
     }
-    if (getenv("SECURE") != NULL && strcmp(getenv("SECURE"), "1") == 0) {
-        s_memlimit = 1;
-        s_seccomp = 1;
+    if (getenv("INSECURE") != NULL && strcmp(getenv("INSECURE"), "1") == 0) {
+        s_memlimit = 0;
+        s_seccomp = 0;
     }
     if (getenv("ONLY_SCORES") != NULL && strcmp(getenv("ONLY_SCORES"), "1") == 0) {
         only_nums_out = 1;
