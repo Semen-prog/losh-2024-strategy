@@ -86,8 +86,9 @@ static char program_name[PATH_MAX] = "";
 const int STEP_USEC = 30 * 1000;
 
 int no_keep_file = 0;
-
 int only_nums_out = 0;
+int s_memlimit = 0;
+int s_seccomp = 0;
 
 int failed = 0;
 
@@ -503,10 +504,10 @@ void run_programs(int argc, char *argv[]) {
             #ifdef linux
             set_mem_limit(256);
             #else
-            #ifdef s_memlimit
-            fprintf(stderr, "s_memlimit defined, non-linux platforms are not supported\n");
-            exit(1);
-            #endif
+            if (s_memlimit) {
+                fprintf(stderr, "s_memlimit enabled, non-linux platforms are not supported\n");
+                exit(1);
+            }
             #endif
             dup2(pipein[i][0], STDIN_FILENO);
             dup2(pipeout[i][1], STDOUT_FILENO);
@@ -520,10 +521,10 @@ void run_programs(int argc, char *argv[]) {
             struct sock_fprog prog = seccomp_prog(filter);
             install_filter(prog);
             #else
-            #ifdef s_seccomp
-            fprintf(stderr, "s_seccomp defined, non-linux platforms are not supported\n");
-            exit(1);
-            #endif
+            if (s_seccomp) {
+                fprintf(stderr, "s_seccomp enabled, non-linux platforms are not supported\n");
+                exit(1);
+            }
             #endif
             if (execve(argv[3 + i], curargs, environ) == -1) {
                 fprintf(stderr, "Could not execute %d player's program\n", i);
@@ -811,6 +812,8 @@ int main(int argc, char *argv[]) {
     if (getenv("STRATEGY_SERVER") != NULL) {
         only_nums_out = 1;
         no_keep_file = 1;
+        s_memlimit = 1;
+        s_seccomp = 1;
     }
     struct sigaction child_sa;
     sigemptyset(&child_sa.sa_mask);
