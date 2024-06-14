@@ -12,15 +12,76 @@
 #include <sys/time.h>
 #include <assert.h>
 
+#ifdef linux
+#include <linux/seccomp.h>
+#include <linux/filter.h>
+#include <stddef.h>
+#include <linux/limits.h>
+#include <asm/unistd.h>
+#include <sys/mount.h>
+#include <sys/prctl.h>
+
+static char program_name[PATH_MAX] = "";
+
+ #define seccomp_fiter(prog_name) { \
+    BPF_STMT(BPF_LD+BPF_W+BPF_ABS, (offsetof(struct seccomp_data, nr))), \
+ \
+    /*  1 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_fork, 0, 1), \
+    /*  2 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /*  3 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_vfork, 0, 1), \
+    /*  4 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /*  5 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_clone, 0, 1), \
+    /*  6 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /*  7 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_clone3, 0, 1), \
+    /*  8 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /*  9 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_execveat, 0, 1), \
+    /* 10 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /* 11 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_memfd_create, 0, 1), \
+    /* 12 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /* 13 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_open, 0, 1), \
+    /* 14 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /* 15 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_unshare, 0, 1), \
+    /* 16 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /* 17 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_creat, 0, 1), \
+    /* 18 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /* 19 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_execve, 0, 3), \
+    /* 20 */ BPF_STMT(BPF_LD+BPF_W+BPF_ABS, (offsetof(struct seccomp_data, args[0]))), \
+    /* 21 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, (uintptr_t) prog_name, 1, 0), \
+    /* 22 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /* 23 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, __NR_openat, 0, 4), \
+    /* 24 */ BPF_STMT(BPF_LD+BPF_W+BPF_ABS, (offsetof(struct seccomp_data, args[2]))), \
+    /* 25 */ BPF_STMT(BPF_ALU+BPF_AND+BPF_K, 07), \
+    /* 26 */ BPF_JUMP(BPF_JMP+BPF_JEQ+BPF_K, 0, 1, 0), \
+    /* 27 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_KILL_PROCESS), \
+ \
+    /* 28 */ BPF_STMT(BPF_RET+BPF_K, SECCOMP_RET_ALLOW), \
+}
+
+#define seccomp_prog(filter) { \
+    .len = (unsigned short)(sizeof(filter) / sizeof(filter[0])), \
+    .filter = filter, \
+}
+
+#define setup_filter() prctl(PR_SET_NO_NEW_PRIVS, 1L, 0L, 0L, 0L)
+
+#define install_filter(prog) prctl(PR_SET_SECCOMP, SECCOMP_MODE_FILTER, &prog)
+
+#endif
+
 #define kill(...) do { \
     kill(__VA_ARGS__); \
     usleep(10000); \
 } while(0);
-
-#ifdef __APPLE__
-#define getrlimit(...) 1
-#define setrlimit(...) 1
-#endif
 
 #ifdef DEBUG
 #ifndef KEEPFILE
@@ -191,9 +252,9 @@ void close_all(void) {
         for (int i = 1; i < cntp + 1; i++) {
             if (progpids[i]) {
 #ifdef DEBUG
-                fprintf(stderr, "Sending SIGTERM to %d\n", progpids[i]);
+                fprintf(stderr, "Sending SIGKILL to %d\n", progpids[i]);
 #endif
-                kill(progpids[i], SIGTERM);
+                kill(progpids[i], SIGKILL);
             }
         }
         free(progpids);
@@ -420,12 +481,30 @@ void run_programs(int argc, char *argv[]) {
             free(curargs);
             fail();
         } else if (curpid == 0) {
+            #ifdef linux
             set_mem_limit(256);
+            #else
+            #ifdef s_memlimit
+            fprintf(stderr, "s_memlimit defined, non-linux platforms are not supported\n");
+            exit(1);
+            #endif
+            #endif
             dup2(pipein[i][0], STDIN_FILENO);
             dup2(pipeout[i][1], STDOUT_FILENO);
             curargs[0] = argv[3 + i];
             #ifdef DEBUG
             fprintf(stderr, "Executing command %s\n", argv[3 + i]);
+            #endif
+            #ifdef linux
+            setup_filter();
+            struct sock_filter filter[] = seccomp_fiter(argv[3 + i]);
+            struct sock_fprog prog = seccomp_prog(filter);
+            install_filter(prog);
+            #else
+            #ifdef s_seccomp
+            fprintf(stderr, "s_seccomp defined, non-linux platforms are not supported\n");
+            exit(1);
+            #endif
             #endif
             if (execve(argv[3 + i], curargs, environ) == -1) {
                 fprintf(stderr, "Could not execute %d player's program\n", i);
@@ -509,13 +588,13 @@ void killchild(int num) {
 #endif
     if (alive[num]) {
 #ifdef DEBUG
-        fprintf(stderr, "Sending SIGTERM to %d\n", progpids[num]);
+        fprintf(stderr, "Sending SIGKILL to %d\n", progpids[num]);
 #endif
         if (alive[num]) {
             alive[num] = 0;
             cntalive--;
         }
-        kill(progpids[num], SIGTERM);
+        kill(progpids[num], SIGKILL);
         if (cntalive == 0) {
             printf("All children have exited, terminating the game\n");
             shutdown();
@@ -769,7 +848,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "Starting interaction\n");
 #endif
     while (cstep < t) {
-        printf("Progress: %lf%%\n", cstep * 100.0 / t);
+        fprintf(stderr, "Progress: %lf%%\n", cstep * 100.0 / t);
         cstep++;
         turnslen[0] = 0;
         int curexpand = 0;
