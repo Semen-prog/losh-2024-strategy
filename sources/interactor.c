@@ -83,13 +83,13 @@ static char program_name[PATH_MAX] = "";
     usleep(10000); \
 } while(0);
 
-#ifdef DEBUG
-#ifndef KEEPFILE
-#define KEEPFILE
-#endif
-#endif
-
 const int STEP_USEC = 30 * 1000;
+
+int no_keep_file = 0;
+
+int only_nums_out = 0;
+
+int failed = 0;
 
 typedef struct pair {
     int x;
@@ -197,7 +197,7 @@ void handle_child(void) {
             }
         }
         if (cntalive == 0) {
-            printf("All children have exited, terminating the game\n");
+            fprintf(stderr, "All children have exited, terminating the game\n");
             shutdown();
         }
     }
@@ -224,9 +224,17 @@ void terminate_validator(void) {
     for (int i = 1; i <= cntp; i++) {
         fscanf(fout[0], "%d", &playerscores[i]);
     }
-    printf("\n\nPlayer scores:\n");
-    for (int i = 1; i <= cntp; i++) {
-        printf("  Player %d: %d\n", i, playerscores[i]);
+    if (!failed) {
+        if (only_nums_out) {
+            for (int i = 1; i <= cntp; i++) {
+                printf("%d\n", playerscores[i]);
+            }
+        } else {
+            printf("\n\nPlayer scores:\n");
+            for (int i = 1; i <= cntp; i++) {
+                printf("  Player %d: %d\n", i, playerscores[i]);
+            }
+        }
     }
     free(playerscores);
     printf("\n");
@@ -325,6 +333,7 @@ void fail(void) {
 #ifdef DEBUG
     fprintf(stderr, "fail() called, terminating\n");
 #endif
+    failed = 1;
     close_all();
     exit(6);
 }
@@ -342,6 +351,10 @@ void read_field(int argc, char *argv[]) {
     fprintf(stderr, "Creating a stream for reading field\n");
 #endif
     field_file = fopen(argv[1], "r");
+    if (field_file == NULL) {
+        fprintf(stderr, "No field file provided\n");
+        fail();
+    }
 #ifdef DEBUG
     fprintf(stderr, "Created a stream for reading field, reading field\n");
 #endif
@@ -359,6 +372,12 @@ void read_field(int argc, char *argv[]) {
             if (field[i][j] < 0) {
                 cnt_walls++;
             }
+        }
+    }
+    if (no_keep_file) {
+        if (remove(argv[1]) != 0) {
+            fprintf(stderr, "Could not delete the field file\n");
+            fail();
         }
     }
 #ifdef DEBUG
@@ -789,6 +808,10 @@ void interact(int num, int expand) {
 }
 
 int main(int argc, char *argv[]) {
+    if (getenv("STRATEGY_SERVER") != NULL) {
+        only_nums_out = 1;
+        no_keep_file = 1;
+    }
     struct sigaction child_sa;
     sigemptyset(&child_sa.sa_mask);
     child_sa.sa_flags = 0;
