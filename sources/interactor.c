@@ -162,7 +162,7 @@ void fail(void);
 
 void shutdown(void);
 
-static void child_exit() {
+static void child_exit(int sig_num) {
     pid_t pid;
     int status;
 
@@ -172,7 +172,7 @@ static void child_exit() {
     }
 }
 
-static void timer_exp() {
+static void timer_exp(int sig_num) {
     if (cur_running != -1) {
         #ifdef DEBUG
         fprintf(stderr, "Timer has expired, currently running player is %d\n", cur_running);
@@ -502,6 +502,7 @@ void run_programs(int argc, char *argv[]) {
     int validpid = fork();
     cntalive = cntp;
     progpids = calloc(cntp + 1, sizeof(int));
+    int null_fd = open("/dev/null", O_WRONLY);
     if (validpid < 0) {
         if (!silent_mode) {
             fprintf(stderr, "Could not create a process for validator\n");
@@ -510,6 +511,9 @@ void run_programs(int argc, char *argv[]) {
         fail();
     } else if (validpid == 0) {
         set_mem_limit(1024);
+        if (silent_mode) {
+            dup2(null_fd, STDERR_FILENO);
+        }
         dup2(pipein[0][0], STDIN_FILENO);
         dup2(pipeout[0][1], STDOUT_FILENO);
         execve(argv[3], validargs, environ);
@@ -542,6 +546,9 @@ void run_programs(int argc, char *argv[]) {
                 exit(1);
             }
             #endif
+            if (silent_mode) {
+                dup2(null_fd, STDERR_FILENO);
+            }
             dup2(pipein[i][0], STDIN_FILENO);
             dup2(pipeout[i][1], STDOUT_FILENO);
             curargs[0] = argv[3 + i];
@@ -578,12 +585,10 @@ void run_programs(int argc, char *argv[]) {
     free(curargs);
 }
 
-int validate_field() {
+int validate_field(void) {
 #ifdef DEBUG
     fprintf(stderr, "Beginning field validation\n");
 #endif
-    fprintf(fin[0], "%s", outputs[0].buf);
-    outputs[0].len = 0;
     fprintf(fin[0], "%d %d %d %d %d\n", t, n, p, k, a);
     fsync(pipein[0][1]);
     for (int i = 0; i < a; i++) {
@@ -663,7 +668,7 @@ void killchild(int num) {
     }
 }
 
-void shutdown() {
+void shutdown(void) {
     close_all();
     exit(0);
 }
@@ -777,7 +782,7 @@ void set_timer(int cur_num) {
     }
 }
 
-void reset_timer() {
+inline void reset_timer(void) {
     alarm(0);
     cur_running = -1;
 }
@@ -859,14 +864,27 @@ void interact(int num, int expand) {
     }
 }
 
-int main(int argc, char *argv[]) {
-    if (getenv("STRATEGY_SERVER") != NULL) {
+void read_envs(void) {
+    if (getenv("STRATEGY_SERVER") != NULL && strcmp(getenv("STRATEGY_SERVER"), "1") == 0) {
         only_nums_out = 1;
         no_keep_file = 1;
         s_memlimit = 1;
         s_seccomp = 1;
         silent_mode = 1;
     }
+    if (getenv("SILENT") != NULL && strcmp(getenv("SILENT"), "1") == 0) {
+        silent_mode = 1;
+    }
+    if (getenv("SECURE") != NULL && strcmp(getenv("SECURE"), "1") == 0) {
+        s_memlimit = 1;
+        s_seccomp = 1;
+    }
+    if (getenv("ONLY_SCORES") != NULL && strcmp(getenv("ONLY_SCORES"), "1") == 0) {
+        only_nums_out = 1;
+    }
+}
+
+void set_actions(void) {
     struct sigaction child_sa;
     sigemptyset(&child_sa.sa_mask);
     child_sa.sa_flags = 0;
@@ -880,6 +898,11 @@ int main(int argc, char *argv[]) {
     timer_sa.sa_handler = timer_exp;
 
     sigaction(SIGALRM, &timer_sa, NULL);
+}
+
+int main(int argc, char *argv[]) {
+    read_envs();
+    set_actions();
 
     if (enabled("--help", argc, argv)) {
         help(argv[0]);
