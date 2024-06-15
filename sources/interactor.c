@@ -13,7 +13,7 @@
 #include <assert.h>
 
 const int INIT_TL = 1000 * 1000; // microseconds
-const int STEP_TL_INCR = 20 * 1000; // microseconds
+const int STEP_TL_INCR = 30 * 1000; // microseconds
 
 int no_keep_file = 0;
 int only_nums_out = 0;
@@ -231,13 +231,18 @@ void terminate_validator(void) {
     for (int i = 1; i <= cntp; i++) {
         fscanf(fout[0], "%d", &playerscores[i]);
     }
+    int cnt_tle = 0;
+    for (int i = 1; i <= cntp; i++) {
+        cnt_tle += (player_tls[i] == 0);
+    }
     if (!failed) {
         if (only_nums_out) {
+            printf("%d\n", cnt_tle);
             for (int i = 1; i <= cntp; i++) {
                 printf("%d\n", playerscores[i]);
             }
         } else {
-            printf("\n\nPlayer scores:\n");
+            printf("\n\n%d players have exceeded TL.\nPlayer scores:\n", cnt_tle);
             for (int i = 1; i <= cntp; i++) {
                 printf("  Player %d: %d\n", i, playerscores[i]);
             }
