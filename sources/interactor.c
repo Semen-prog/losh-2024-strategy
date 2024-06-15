@@ -12,7 +12,14 @@
 #include <sys/time.h>
 #include <assert.h>
 
-const int STEP_USEC = 30 * 1000;
+const int INIT_TL = 1000 * 1000; // microseconds
+const int STEP_TL_INCR = 30 * 1000; // microseconds
+
+int no_keep_file = 0;
+int only_nums_out = 0;
+int s_memlimit = 0;
+int s_seccomp = 0;
+int silent_mode = 0;
 
 #ifdef linux
 #include <linux/seccomp.h>
@@ -22,8 +29,6 @@ const int STEP_USEC = 30 * 1000;
 #include <asm/unistd.h>
 #include <sys/mount.h>
 #include <sys/prctl.h>
-
-static char program_name[PATH_MAX] = "";
 
  #define seccomp_fiter(prog_name) { \
     BPF_STMT(BPF_LD+BPF_W+BPF_ABS, (offsetof(struct seccomp_data, nr))), \
@@ -85,17 +90,6 @@ static char program_name[PATH_MAX] = "";
     usleep(10000); \
 } while(0);
 
-int no_keep_file = 0;
-int only_nums_out = 0;
-#ifdef linux
-int s_memlimit = 0;
-int s_seccomp = 0;
-#else
-int s_memlimit = 0;
-int s_seccomp = 0;
-#endif
-int silent_mode = 0;
-
 int failed = 0;
 
 typedef struct pair {
@@ -138,6 +132,8 @@ buf *outputs;
 int *alive;
 
 int *playerscores;
+
+int *player_tls;
 
 int interactor_bug = 0;
 
@@ -783,14 +779,14 @@ void write_to_proc(int num, int v1, int v2, int v3) {
     bufprintf(&outputs[num], "%d %d %d\n", v1, v2, v3);
 }
 
-void set_timer(int cur_num) {
+void set_timer(int cur_num, int cur_tl) {
     cur_running = cur_num;
     struct itimerval timer_val;
     timer_val.it_interval.tv_sec = 0;
     timer_val.it_interval.tv_usec = 0;
 
-    timer_val.it_value.tv_sec = STEP_USEC / 1000000;
-    timer_val.it_value.tv_usec = STEP_USEC % 1000000;
+    timer_val.it_value.tv_sec = cur_tl / 1000000;
+    timer_val.it_value.tv_usec = cur_tl % 1000000;
 
     if (setitimer(ITIMER_REAL, &timer_val, NULL) != 0) {
         if (!silent_mode) {
@@ -800,9 +796,24 @@ void set_timer(int cur_num) {
     }
 }
 
-static inline void reset_timer(void) {
-    alarm(0);
+int reset_timer(int num) {
+    struct itimerval nwval;
+    struct itimerval curval;
+
+    nwval.it_value.tv_sec = 0;
+    nwval.it_value.tv_usec = 0;
+    nwval.it_interval.tv_sec = 0;
+    nwval.it_interval.tv_usec = 0;
+
+    if (setitimer(ITIMER_REAL, &nwval, &curval) != 0) {
+        if (!silent_mode) {
+            fprintf(stderr, "setitimer returned non-zero, errno is %d\n", errno);
+        }
+        fail();
+    }
+
     cur_running = -1;
+    return curval.it_value.tv_sec * 1000000 + curval.it_value.tv_usec;
 }
 
 pair read_from_proc(int num) {
@@ -827,7 +838,7 @@ pair read_from_proc(int num) {
     fprintf(stderr, "read_from_proc(%d): alive is %d\n", num, alive[num]);
 #endif
     if (alive[num]) {
-        set_timer(num);
+        set_timer(num, player_tls[num]);
         int cres;
         if ((cres = fscanf(fout[num], "%d%d", &res.x, &res.y)) != 2) {
             if (!silent_mode) {
@@ -838,13 +849,19 @@ pair read_from_proc(int num) {
             res.x = 1000000000;
             res.y = 1000000000;
         }
-        reset_timer();
+        player_tls[num] = reset_timer(num);
+    } else {
+        res.x = 1000000000;
+        res.y = 1000000000;
     }
 #ifdef DEBUG
     fprintf(stderr, "Got %d %d from child\n", res.x, res.y);
 #endif
     handle_child();
     kill(progpids[num], SIGSTOP);
+    if (alive[num]) {
+        player_tls[num] += STEP_TL_INCR;
+    }
     return res;
 }
 
@@ -937,6 +954,11 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Not enough parameters passed. Please use %s --help to get usage information\n", argv[0]);
         }
         fail();
+    }
+
+    player_tls = malloc((cntp + 1) * sizeof(int));
+    for (int i = 1; i <= cntp; i++) {
+        player_tls[i] = INIT_TL;
     }
 
     alive = malloc((cntp + 1) * sizeof(int));
