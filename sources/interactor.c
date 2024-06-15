@@ -13,7 +13,7 @@
 #include <assert.h>
 
 const int INIT_TL = 1000 * 1000; // microseconds
-const int STEP_TL_INCR = 30 * 1000; // microseconds
+const int STEP_TL_INCR = 20 * 1000; // microseconds
 
 int no_keep_file = 0;
 int only_nums_out = 0;
