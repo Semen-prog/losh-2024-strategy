@@ -339,7 +339,7 @@ int enabled(char *str, int argc, char *argv[]) {
 }
 
 void help(char *progname) {
-    printf("Usage: %s field.txt log.txt validate program1 program2 [program3 ...]\n", progname);
+    fprintf(stderr, "Usage: %s field.txt log.txt validate program1 program2 [program3 ...]\n", progname);
 }
 
 void fail(void) {
@@ -682,7 +682,7 @@ void killchild(int num) {
         }
         kill(progpids[num], SIGKILL);
         if (cntalive == 0) {
-            printf("All children have exited, terminating the game\n");
+            fprintf(stderr, "All children have exited, terminating the game\n");
             shutdown();
         }
     }
