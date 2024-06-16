@@ -147,22 +147,28 @@ int exitstatus = -1;
 
 int cntalive;
 
+void fail(void);
+void shutdown(void);
+
 void bufprintf(buf *b, const char *fmt, ...) {
     va_list vargs;
     va_start(vargs, fmt);
     int diff = vsnprintf(b->buf + b->len, b->cap - b->len, fmt, vargs);
     while (b->len + diff + 1 >= b->cap) {
-        b->buf = realloc(b->buf, 2 * b->cap);
+        void *nwbuf = realloc(b->buf, 2 * b->cap);
+        if (nwbuf == NULL) {
+            if (!silent_mode) {
+                fprintf(stderr, "Could not reallocate buffer\n");
+                fail();
+            }
+        }
+        b->buf = nwbuf;
         b->cap *= 2;
         diff = vsnprintf(b->buf + b->len, b->cap - b->len, fmt, vargs);
     }
     b->len += diff;
     va_end(vargs);
 }
-
-void fail(void);
-
-void shutdown(void);
 
 static void child_exit(int sig_num) {
     pid_t pid;
