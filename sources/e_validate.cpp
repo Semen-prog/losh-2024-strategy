@@ -51,6 +51,9 @@ namespace Validator {
         }
 
         inline bool inside(int x, int y) {
+            if (x == -2147483648 || y == -2147483648) {
+                return false;
+            }
             return (std::abs(x) <= n && std::abs(y) <= n);
         }
 
@@ -222,8 +225,8 @@ namespace Validator {
                             auto [ci, cj] = getij(curel.first, curel.second);
                             if (field[ci][cj] != -1) {
                                 field[ci][cj] = pl_num;
-                                auto [x, y] = getcoords(ci, cj);
-                                log_stream << pl_num << ' ' << x << ' ' << y << std::endl;
+                                auto [cx, cy] = getcoords(ci, cj);
+                                log_stream << pl_num << ' ' << cx << ' ' << cy << std::endl;
                             }
                         }
                         dfs_used.resize(0);
