@@ -70,9 +70,6 @@ class VisualizerTk(Thread):
 
 
     def process(self):
-        global ts
-        inp = list(map(int, self.file.readline().split()))
-        if inp[0] > 0:
             num, x, y = inp[0], inp[1], inp[2]
             i, j = self.get_cell(x, y)
             self.tab[i][j] = num
@@ -80,8 +77,8 @@ class VisualizerTk(Thread):
             self.scores[num - 1] += 1
             self.redraw_score()
         elif inp[0] == -1:
-            ts += 1
-            self.redraw(ts)
+            self.ts += 1
+            self.redraw(self.ts)
             ni = list(map(int, self.file.readline().split()))
             while ni[0] != -1:
                 x, y = ni[1], ni[2]
