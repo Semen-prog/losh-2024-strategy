@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     }
     std::mt19937 rnd(seed);
     if (argc == 7) {
-        int prob_perc = atoi(argv[5]);
+        int prob_perc = atoi(argv[6]);
         if (prob_perc < 0 || prob_perc > 50) {
             std::cerr << "Invalid value of prob\n";
             print_help(argv[0]);
