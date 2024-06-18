@@ -119,17 +119,17 @@ class VisualizerTk(Thread):
         self.min_ms, self.max_ms = 1, 200
         if "--help" in argv:
             print(f"Usage:\n {argv[0]} log.txt [ms [scfont]]")
-            self.exit()
+            exit(0)
         if len(argv) in {2, 3, 4}:
             self.path = argv[1]
             self.ms = (self.min_ms + self.max_ms) / 2 if len(argv) == 2 else int(argv[2])
             self.scfont = 18 if len(argv) <= 3 else int(argv[3])
             if not self.min_ms <= self.ms <= self.max_ms:
                 print(f"ms violates [{self.min_ms}, {self.max_ms}]\n")
-                self.exit()
+                exit(0)
         else:
             print(f"Incorrect option\nUse {argv[0]} --help to view usage information")
-            self.exit()
+            exit(0)
 
         self.file = open(self.path, "r")
         self.t, self.n, self.p, self.k, self.a = map(int, self.file.readline().split())
@@ -184,7 +184,10 @@ class VisualizerTk(Thread):
         self.cnv.mainloop()
 
 def sigint_handler(sig, frame):
-    app.exit()
+    try:
+        app.exit()
+    except:
+        exit(0)
 
 app = VisualizerTk()
 
