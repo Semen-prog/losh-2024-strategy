@@ -61,10 +61,10 @@ class VisualizerTk(Thread):
         best_score = max(self.scores)
         for i in range(self.k):
             if self.scores[i] < best_score or not select_best:
-                self.scr.create_text(x + wi / 2, y + he / 2, text=str(self.scores[i]), fill=self.colors[i], font=("Helvetica", self.scfont))
+                self.scr.create_text(x + wi / 2, y + he / 2, text=f"{self.names[i]}: {self.scores[i]}", fill=self.colors[i], font=("Helvetica", self.scfont))
             else:
                 self.scr.create_rectangle(x, y, x + wi, y + he, fill="black")
-                self.scr.create_text(x + wi / 2, y + he / 2, text=str(self.scores[i]), fill="white", font=("Helvetica", self.scfont))
+                self.scr.create_text(x + wi / 2, y + he / 2, text=f"{self.names[i]}: {self.scores[i]}", fill="white", font=("Helvetica", self.scfont))
             y += he
             self.scr.create_line(x, y, x + wi, y)
 
@@ -118,18 +118,23 @@ class VisualizerTk(Thread):
     def run(self):
         self.min_ms, self.max_ms = 1, 200
         if "--help" in argv:
-            print(f"Usage:\n {argv[0]} log.txt [ms [scfont]]")
+            print(f"Usage:\n {argv[0]} log.txt names.txt [ms [scfont]]")
             exit(0)
-        if len(argv) in {2, 3, 4}:
+        if len(argv) in {2, 3, 4, 5}:
             self.path = argv[1]
-            self.ms = (self.min_ms + self.max_ms) / 2 if len(argv) == 2 else int(argv[2])
-            self.scfont = 18 if len(argv) <= 3 else int(argv[3])
+            self.pnames = "Player" if len(argv) <= 2 else argv[2]
+            self.ms = (self.min_ms + self.max_ms) / 2 if len(argv) <= 3 else int(argv[3])
+            self.scfont = 18 if len(argv) <= 4 else int(argv[4])
             if not self.min_ms <= self.ms <= self.max_ms:
                 print(f"ms violates [{self.min_ms}, {self.max_ms}]\n")
                 exit(0)
         else:
             print(f"Incorrect option\nUse {argv[0]} --help to view usage information")
             exit(0)
+
+        self.fnames = open(self.pnames, "r")
+        self.names = list(map(lambda x: x.strip(), self.fnames.readlines()))
+        self.fnames.close()
 
         self.file = open(self.path, "r")
         self.t, self.n, self.p, self.k, self.a = map(int, self.file.readline().split())
@@ -155,7 +160,7 @@ class VisualizerTk(Thread):
         self.scores_master = Toplevel(self.master)
         self.scores_master.title("Счёт")
 
-        self.SW, self.SH = self.W * 0.3, self.H
+        self.SW, self.SH = self.W, self.H
 
         self.scr = Canvas(self.scores_master, width=self.SW, height=self.SH)
 
